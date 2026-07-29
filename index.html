@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KanbanPro - Gorgeous AI-Powered Kanban Board & Workspace</title>
+  <meta name="description" content="Ultra-gorgeous Kanban board web app with dual Light/Dark themes, IndexedDB client-side database persistence, interactive AI assistant, and drag-and-drop workflow management.">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Vector Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    
+    <!-- Left Navigation Sidebar (Inspired by Reference Images) -->
+    <aside class="sidebar" id="app-sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-avatar">KP</div>
+        <div class="brand-info">
+          <span class="brand-title">KanbanPro</span>
+          <span class="brand-subtitle">Workspace</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">DISCOVER</div>
+        <a href="#" class="nav-item">
+          <i class="lucide-layout-dashboard"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="lucide-map"></i>
+          <span>Roadmap</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="lucide-compass"></i>
+          <span>Horizon</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="lucide-bar-chart-3"></i>
+          <span>Reports</span>
+        </a>
+
+        <div class="nav-section-title" style="margin-top: 18px;">WORKSPACE</div>
+        <a href="#" class="nav-item">
+          <i class="lucide-book-open"></i>
+          <span>Knowledge</span>
+        </a>
+        <a href="#" class="nav-item active">
+          <i class="lucide-kanban"></i>
+          <span>Actions / Board</span>
+          <span class="nav-badge">Live</span>
+        </a>
+        <a href="#" class="nav-item">
+          <i class="lucide-git-branch"></i>
+          <span>Workflows</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-item btn-sidebar-action" id="btn-sidebar-db">
+          <i class="lucide-database"></i>
+          <span>Database</span>
+        </button>
+        <button class="nav-item btn-sidebar-action" id="btn-sidebar-ai">
+          <i class="lucide-sparkles" style="color:var(--accent-pink);"></i>
+          <span>AI Copilot</span>
+        </button>
+        <div class="user-profile">
+          <div class="user-avatar-group">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&q=80" alt="User Avatar" class="profile-img">
+            <div class="user-info">
+              <span class="user-name">Sarah Jenkins</span>
+              <span class="user-role">Product Lead</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+      
+      <!-- Top Navigation & Action Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="btn btn-icon btn-toggle-sidebar" id="btn-toggle-sidebar" title="Toggle Sidebar">
+            <i class="lucide-panel-left"></i>
+          </button>
+          
+          <div class="breadcrumbs">
+            <span class="breadcrumb-item">Projects</span>
+            <i class="lucide-chevron-right breadcrumb-sep"></i>
+            <span class="breadcrumb-item">International</span>
+            <i class="lucide-chevron-right breadcrumb-sep"></i>
+            <span class="breadcrumb-item active">Product Web</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="search-box">
+            <i class="lucide-search"></i>
+            <input type="text" id="search-input" class="search-input" placeholder="Search tasks, descriptions, tags... (Cmd+K)">
+            <span class="kbd-shortcut">⌘K</span>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- Theme Switcher Toggle (Light / Dark) -->
+          <button class="btn btn-icon btn-theme-toggle" id="btn-theme-toggle" title="Toggle Light / Dark Theme">
+            <i class="lucide-sun theme-icon-light"></i>
+            <i class="lucide-moon theme-icon-dark"></i>
+          </button>
+
+          <!-- Database Sync Modal Button -->
+          <button class="btn" id="btn-open-db" title="Database Settings & Snapshot Backup">
+            <i class="lucide-database"></i>
+            <span class="btn-text">Database</span>
+          </button>
+
+          <!-- AI Assistant Drawer Button -->
+          <button class="btn btn-ai" id="btn-toggle-ai" title="Toggle AI Copilot Assistant">
+            <i class="lucide-sparkles"></i>
+            <span class="btn-text">AI Copilot</span>
+          </button>
+
+          <!-- Primary New Task Action -->
+          <button class="btn btn-primary" id="btn-header-new-task">
+            <i class="lucide-plus"></i>
+            <span>New Action</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Sprint Title & Workspace Meta Bar (Matching Ref Images) -->
+      <section class="meta-toolbar">
+        <div class="meta-title-group">
+          <h1 class="sprint-title">All Sprints</h1>
+          <button class="btn btn-icon star-btn" title="Star Project"><i class="lucide-star"></i></button>
+          
+          <div class="avatar-stack" title="Team members">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80" alt="Member">
+            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80" alt="Member">
+            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80" alt="Member">
+            <img src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=60&q=80" alt="Member">
+            <span class="avatar-more">+5</span>
+          </div>
+        </div>
+
+        <div class="meta-controls">
+          <div class="filter-pill-group">
+            <button class="filter-pill active" data-priority="ALL">All Tasks</button>
+            <button class="filter-pill" data-priority="urgent">🔴 Urgent</button>
+            <button class="filter-pill" data-priority="high">🟡 High</button>
+            <button class="filter-pill" data-priority="medium">🔵 Medium</button>
+            <button class="filter-pill" data-priority="low">🟢 Low</button>
+          </div>
+
+          <!-- Database Sync Live Indicator -->
+          <div id="db-sync-indicator" class="db-status-pill" title="Real-time IndexedDB persistence active">
+            <div class="status-dot"></div>
+            <span>IndexedDB Active</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Kanban Canvas -->
+      <section class="board-container">
+        <div id="kanban-canvas" class="kanban-canvas">
+          <!-- Dynamically populated by board.js -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- AI Copilot Side Drawer -->
+    <aside id="ai-drawer" class="ai-drawer collapsed">
+      <div class="ai-drawer-header">
+        <div class="ai-title">
+          <i class="lucide-sparkles ai-sparkle-icon"></i>
+          <span>AI Board Copilot</span>
+        </div>
+        <button class="btn btn-icon" id="btn-close-ai"><i class="lucide-x"></i></button>
+      </div>
+
+      <div id="ai-chat-messages" class="ai-chat-messages">
+        <div class="chat-bubble ai">
+          👋 Hi! I'm your <strong>AI Board Copilot</strong>.<br><br>
+          I can generate tasks, move cards between columns, summarize project progress, and answer questions about your board!
+        </div>
+      </div>
+
+      <div class="ai-quick-prompts">
+        <span class="quick-prompt-chip">Create 3 tasks for web launch</span>
+        <span class="quick-prompt-chip">Show board progress summary</span>
+        <span class="quick-prompt-chip">Which tasks are urgent?</span>
+        <span class="quick-prompt-chip">Clear done tasks</span>
+      </div>
+
+      <div class="ai-chat-input-area">
+        <input type="text" id="ai-input" class="ai-input" placeholder="Ask AI to create tasks or manage board...">
+        <button class="btn btn-primary" id="btn-send-ai" style="padding: 0 14px;"><i class="lucide-send"></i></button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Entry Script -->
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>
