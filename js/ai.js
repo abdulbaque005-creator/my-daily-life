@@ -1,7 +1,7 @@
 /**
  * AI Copilot Engine for Kanban Board
  */
-export class AICopilot {
+class AICopilot {
   constructor(boardController) {
     this.board = boardController;
   }
@@ -89,13 +89,68 @@ export class AICopilot {
       };
     }
 
+    // Command 5: Theme switching
+    if (text.includes('dark mode') || text.includes('dark theme') || text.includes('go dark')) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('kanban_theme', 'dark');
+      return { reply: '🌙 Switched to **Dark Mode**. My eyes feel better already!' };
+    }
+    if (text.includes('light mode') || text.includes('light theme') || text.includes('go light') || text.includes('bright')) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('kanban_theme', 'light');
+      return { reply: '☀️ Switched to **Light Mode**. Let there be light!' };
+    }
+
+    // Command 6: Tag filtering / Search
+    if (text.startsWith('find') || text.startsWith('search') || text.includes('show me tasks about')) {
+      const keyword = text.replace(/find|search|show me tasks about|tasks with tag/gi, '').trim().toLowerCase();
+      if (!keyword) return { reply: 'Please tell me what to search for (e.g. "find Audit")' };
+      
+      const found = this.board.cards.filter(c => 
+        c.title.toLowerCase().includes(keyword) || 
+        c.tags.some(t => t.toLowerCase().includes(keyword))
+      );
+      
+      if (found.length === 0) return { reply: `I couldn't find any tasks related to **"${keyword}"**.` };
+      
+      const listStr = found.map(c => `• **${c.title}** (in ${c.columnId})`).join('\n');
+      return { reply: `🔍 **Found ${found.length} matching tasks**:\n\n${listStr}` };
+    }
+
+    // Command 7: Clear All Columns (Reset)
+    if (text.includes('reset board') || text.includes('delete everything') || text.includes('clear all tasks')) {
+      this.board.cards.forEach(c => this.board.deleteCard(c.id));
+      return { reply: '⚠️ **Board Reset!** All tasks have been cleared. A fresh start for your daily life.' };
+    }
+
+    // Command 8: Prioritize a column
+    if (text.includes('prioritize backlog') || text.includes('mark backlog as high')) {
+      const backlogCards = this.board.cards.filter(c => c.columnId === 'backlog');
+      backlogCards.forEach(c => {
+        c.priority = 'high';
+        this.board.updateCard(c.id, c);
+      });
+      return { reply: `🚀 Upgraded **${backlogCards.length} Backlog tasks** to High priority.` };
+    }
+
+    // Conversational/Greetings
+    if (text === 'hi' || text === 'hello' || text === 'hey') {
+      return { reply: 'Hello! 👋 I am your smart assistant for **My Daily Life**. How can I help you be more productive today?' };
+    }
+    if (text.includes('thank you') || text.includes('thanks')) {
+      return { reply: 'You are very welcome! Let me know if you need anything else.' };
+    }
+
     // General AI fallback Q&A
     return {
-      reply: `💡 I'm your AI Kanban Copilot! Here are some things you can ask me to do:\n\n` +
+      reply: `💡 I'm your AI Copilot! Here are some smart things I can do for you:\n\n` +
         `• *"Create 3 tasks for launching user authentication"* \n` +
         `• *"Show board progress summary"* \n` +
         `• *"Which tasks are urgent?"* \n` +
-        `• *"Clear done tasks"*`
+        `• *"Clear done tasks"* \n` +
+        `• *"Switch to light mode / dark mode"* \n` +
+        `• *"Find tasks about Audit"* \n` +
+        `• *"Reset board"*`
     };
   }
 

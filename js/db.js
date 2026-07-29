@@ -3,7 +3,7 @@
  */
 class KanbanDB {
   constructor() {
-    this.dbName = 'KanbanProDB';
+    this.dbName = 'MyDailyLifeDB';
     this.dbVersion = 1;
     this.db = null;
     this.storageKey = 'kanban_pro_board_data';
@@ -135,7 +135,7 @@ class KanbanDB {
   // Export full DB as JSON file download
   exportJSON(columns, cards) {
     const backup = {
-      app: 'KanbanPro',
+      app: 'My Daily Life',
       version: '1.0',
       exportedAt: new Date().toISOString(),
       columns,
@@ -153,4 +153,4 @@ class KanbanDB {
   }
 }
 
-export const dbManager = new KanbanDB();
+const dbManager = new KanbanDB();

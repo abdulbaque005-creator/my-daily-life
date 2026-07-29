@@ -1,9 +1,7 @@
 /**
  * Kanban Board Controller & Drag and Drop Manager
  */
-import { dbManager } from './db.js';
-
-export class BoardController {
+class BoardController {
   constructor(app) {
     this.app = app;
     this.columns = [
@@ -38,7 +36,7 @@ export class BoardController {
           tags: ['Compliance', 'Audit'],
           commentsCount: 2,
           attachmentsCount: 1,
-          assignee: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80',
+          assignee: './Me.jpeg',
           subtasks: [
             { id: 'st_1', text: 'Create climate metric survey', completed: true },
             { id: 'st_2', text: 'Distribute to operations team', completed: false }
@@ -55,7 +53,7 @@ export class BoardController {
           tags: ['HR', 'Training'],
           commentsCount: 1,
           attachmentsCount: 3,
-          assignee: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80',
+          assignee: 'https://ui-avatars.com/api/?name=Team+Alpha&background=ec4899&color=fff&bold=true',
           subtasks: [
             { id: 'st_3', text: 'Upload video modules', completed: true }
           ],
@@ -71,7 +69,7 @@ export class BoardController {
           tags: ['Legal', 'Finance'],
           commentsCount: 6,
           attachmentsCount: 2,
-          assignee: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80',
+          assignee: 'https://ui-avatars.com/api/?name=Dev+Lead&background=10b981&color=fff&bold=true',
           subtasks: [
             { id: 'st_4', text: 'Review legal disclosures', completed: true },
             { id: 'st_5', text: 'Submit PDF to regulator', completed: false }
@@ -88,7 +86,7 @@ export class BoardController {
           tags: ['Vendor', 'Security'],
           commentsCount: 2,
           attachmentsCount: 0,
-          assignee: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=60&q=80',
+          assignee: 'https://ui-avatars.com/api/?name=QA+Tester&background=f59e0b&color=fff&bold=true',
           subtasks: [],
           createdAt: new Date().toISOString()
         },
@@ -102,7 +100,7 @@ export class BoardController {
           tags: ['Audit'],
           commentsCount: 5,
           attachmentsCount: 2,
-          assignee: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80',
+          assignee: './Me.jpeg',
           subtasks: [],
           createdAt: new Date().toISOString()
         },
@@ -116,7 +114,7 @@ export class BoardController {
           tags: ['Done'],
           commentsCount: 3,
           attachmentsCount: 1,
-          assignee: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80',
+          assignee: 'https://ui-avatars.com/api/?name=Team+Alpha&background=ec4899&color=fff&bold=true',
           subtasks: [
             { id: 'st_6', text: 'Audit report signed off', completed: true }
           ],
@@ -153,7 +151,7 @@ export class BoardController {
       tags: cardData.tags || ['Action'],
       commentsCount: cardData.commentsCount || 0,
       attachmentsCount: cardData.attachmentsCount || 0,
-      assignee: cardData.assignee || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80',
+      assignee: cardData.assignee || './Me.jpeg',
       subtasks: cardData.subtasks || [],
       createdAt: new Date().toISOString()
     };
@@ -185,6 +183,41 @@ export class BoardController {
       this.saveState();
       this.render();
     }
+  }
+
+  updateCardOrder(columnId, container) {
+    const cardElements = [...container.querySelectorAll('.card')];
+    const orderedCardIds = cardElements.map(el => el.dataset.cardId);
+    
+    const card = this.cards.find(c => c.id === this.draggedCardId);
+    if (card) {
+      card.columnId = columnId;
+    }
+
+    const otherCards = this.cards.filter(c => c.columnId !== columnId);
+    const thisColCards = this.cards.filter(c => c.columnId === columnId);
+
+    thisColCards.sort((a, b) => {
+       return orderedCardIds.indexOf(a.id) - orderedCardIds.indexOf(b.id);
+    });
+
+    this.cards = [...otherCards, ...thisColCards];
+    this.saveState();
+    this.render();
+  }
+
+  getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.card:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height / 2;
+      if (offset < 0 && offset > closest.offset) {
+        return { offset: offset, element: child };
+      } else {
+        return closest;
+      }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 
   addColumn(title, color = '#8b5cf6') {
@@ -246,14 +279,14 @@ export class BoardController {
             <span class="column-badge">${filteredCards.length}</span>
           </div>
           <button class="btn btn-icon btn-col-options" data-col-id="${col.id}" title="Column Options">
-            <i class="lucide-more-horizontal"></i>
+            <i data-lucide="more-horizontal" class="lucide-icon"></i>
           </button>
         </div>
         <div class="column-cards-container" data-col-id="${col.id}">
           ${filteredCards.map(card => this.renderCardHTML(card)).join('')}
         </div>
         <button class="add-card-btn" data-col-id="${col.id}">
-          <i class="lucide-plus"></i> Add Action
+          <i data-lucide="plus" class="lucide-icon"></i> Add Action
         </button>
       `;
 
@@ -262,6 +295,16 @@ export class BoardController {
       cardsContainer.addEventListener('dragover', (e) => {
         e.preventDefault();
         colEl.classList.add('drag-over');
+        
+        const afterElement = this.getDragAfterElement(cardsContainer, e.clientY);
+        const draggable = document.querySelector('.dragging');
+        if (draggable) {
+          if (afterElement == null) {
+            cardsContainer.appendChild(draggable);
+          } else {
+            cardsContainer.insertBefore(draggable, afterElement);
+          }
+        }
       });
 
       cardsContainer.addEventListener('dragleave', () => {
@@ -272,7 +315,7 @@ export class BoardController {
         e.preventDefault();
         colEl.classList.remove('drag-over');
         if (this.draggedCardId) {
-          this.moveCard(this.draggedCardId, col.id);
+          this.updateCardOrder(col.id, cardsContainer);
           this.draggedCardId = null;
         }
       });
@@ -284,7 +327,7 @@ export class BoardController {
     const addColBtn = document.createElement('button');
     addColBtn.className = 'add-column-btn';
     addColBtn.id = 'btn-add-column';
-    addColBtn.innerHTML = `<i class="lucide-plus-circle" style="font-size:24px;"></i><span>New Column</span>`;
+    addColBtn.innerHTML = `<i data-lucide="plus-circle" class="lucide-icon" style="font-size:24px;"></i><span>New Column</span>`;
     canvas.appendChild(addColBtn);
 
     // Re-initialize Lucide Icons
@@ -300,6 +343,24 @@ export class BoardController {
     const progressPercent = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
     const isOverdue = card.dueDate === 'Today' || (card.dueDate && card.dueDate.includes('Overdue'));
 
+    let subtasksHTML = '';
+    if (totalSubtasks > 0) {
+      subtasksHTML = `
+        <div class="card-subtasks" style="margin-top: 10px; display: flex; flex-direction: column; gap: 4px;">
+          ${card.subtasks.map((st) => `
+            <label class="card-subtask-item" data-st-id="${st.id}" data-card-id="${card.id}" style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer;">
+              <input type="checkbox" class="card-subtask-cb" ${st.completed ? 'checked' : ''}>
+              <span class="${st.completed ? 'st-completed' : ''}" style="color: var(--text-secondary);">${this.escapeHTML(st.text)}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    const descriptionHTML = card.description ? 
+      `<div class="card-description-preview markdown-body" style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">${window.marked ? window.marked.parse(card.description) : this.escapeHTML(card.description)}</div>` 
+      : '';
+
     return `
       <div class="card" draggable="true" data-card-id="${card.id}">
         <div class="card-tags">
@@ -309,47 +370,45 @@ export class BoardController {
         
         <div class="card-title">${this.escapeHTML(card.title)}</div>
         
-        ${card.description ? `<div class="card-description-preview">${this.escapeHTML(card.description)}</div>` : ''}
+        ${descriptionHTML}
+        ${subtasksHTML}
 
-        <div class="card-footer">
+        <div class="card-footer" style="margin-top: 12px;">
           <div class="card-meta-group">
             <div style="display:flex; align-items:center; gap:10px;">
               ${card.dueDate ? `
                 <div class="meta-item ${isOverdue ? 'overdue' : ''}">
-                  <i class="lucide-calendar" style="font-size:12px;"></i>
-                  <span>${card.dueDate}</span>
+                  <i data-lucide="calendar" class="lucide-icon" style="font-size:12px;"></i>
+                  <span>${this.formatDate(card.dueDate)}</span>
                 </div>
               ` : ''}
               
               ${(card.attachmentsCount || 0) > 0 ? `
                 <div class="meta-item" title="${card.attachmentsCount} Attachments">
-                  <i class="lucide-paperclip" style="font-size:12px;"></i>
+                  <i data-lucide="paperclip" class="lucide-icon" style="font-size:12px;"></i>
                   <span>${card.attachmentsCount}</span>
                 </div>
               ` : ''}
 
               ${(card.commentsCount || 0) > 0 ? `
                 <div class="meta-item" title="${card.commentsCount} Comments">
-                  <i class="lucide-message-square" style="font-size:12px;"></i>
+                  <i data-lucide="message-square" class="lucide-icon" style="font-size:12px;"></i>
                   <span>${card.commentsCount}</span>
                 </div>
               ` : ''}
 
               ${totalSubtasks > 0 ? `
-                <div class="meta-item">
-                  <i class="lucide-check-square" style="font-size:12px;"></i>
-                  <span>${completedSubtasks}/${totalSubtasks}</span>
+                <div class="meta-item subtask-meta">
+                  <i data-lucide="check-square" class="lucide-icon" style="font-size:12px;"></i>
+                  <span class="st-count">${completedSubtasks}/${totalSubtasks}</span>
                 </div>
               ` : ''}
             </div>
 
-            ${card.assignee ? `
-              <img src="${card.assignee}" alt="Assignee" style="width:22px; height:22px; border-radius:50%; object-fit:cover;">
-            ` : ''}
           </div>
 
           ${totalSubtasks > 0 ? `
-            <div class="progress-bar-container" title="${progressPercent}% Completed">
+            <div class="progress-bar-container" title="${progressPercent}% Completed" style="margin-top: 8px;">
               <div class="progress-bar-fill" style="width: ${progressPercent}%"></div>
             </div>
           ` : ''}
@@ -372,12 +431,53 @@ export class BoardController {
         this.draggedCardId = null;
       });
 
-      cardEl.addEventListener('click', () => {
+      cardEl.addEventListener('click', (e) => {
+        // Ignore clicks if they occurred on a subtask
+        if (e.target.closest('.card-subtasks')) return;
+        
         const cardId = cardEl.dataset.cardId;
         const card = this.cards.find(c => c.id === cardId);
         if (card && this.app.modalManager) {
           this.app.modalManager.openCardModal(card);
         }
+      });
+      
+      // Interactive subtasks
+      cardEl.querySelectorAll('.card-subtask-cb').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const itemEl = cb.closest('.card-subtask-item');
+          const cardId = itemEl.dataset.cardId;
+          const stId = itemEl.dataset.stId;
+          const card = this.cards.find(c => c.id === cardId);
+          if (card) {
+            const st = card.subtasks.find(s => s.id === stId);
+            if (st) {
+              st.completed = cb.checked;
+              this.saveState();
+              
+              const span = itemEl.querySelector('span');
+              if (cb.checked) {
+                span.classList.add('st-completed');
+                span.style.textDecoration = 'line-through';
+                span.style.opacity = '0.6';
+              } else {
+                span.classList.remove('st-completed');
+                span.style.textDecoration = 'none';
+                span.style.opacity = '1';
+              }
+              
+              const completedCount = card.subtasks.filter(s => s.completed).length;
+              const totalCount = card.subtasks.length;
+              const percent = Math.round((completedCount / totalCount) * 100);
+              
+              const progressFill = cardEl.querySelector('.progress-bar-fill');
+              if (progressFill) progressFill.style.width = percent + '%';
+              
+              const progressText = cardEl.querySelector('.st-count');
+              if (progressText) progressText.innerText = `${completedCount}/${totalCount}`;
+            }
+          }
+        });
       });
     });
 
@@ -416,5 +516,14 @@ export class BoardController {
     return (str || '').replace(/[&<>'"]/g, 
       tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
+  }
+
+  formatDate(d) {
+    if (!d) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+       const date = new Date(d);
+       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    }
+    return d;
   }
 }

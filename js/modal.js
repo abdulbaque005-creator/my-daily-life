@@ -1,9 +1,7 @@
 /**
  * Modal Manager - Task Detail Modal, Database Management Modal & Custom Column Modal
  */
-import { dbManager } from './db.js';
-
-export class ModalManager {
+class ModalManager {
   constructor(app) {
     this.app = app;
     this.activeCard = null;
@@ -21,7 +19,7 @@ export class ModalManager {
         <div class="modal-card">
           <div class="modal-header">
             <h3 id="card-modal-title-text" class="font-display">Edit Task</h3>
-            <button class="btn btn-icon modal-close" data-target="card-modal"><i class="lucide-x"></i></button>
+            <button class="btn btn-icon modal-close" data-target="card-modal"><i data-lucide="x" class="lucide-icon"></i></button>
           </div>
           <div class="modal-body">
             <div class="form-group">
@@ -48,7 +46,7 @@ export class ModalManager {
             <div style="display: flex; gap: 16px;">
               <div class="form-group" style="flex: 1;">
                 <label class="form-label">Due Date</label>
-                <input type="text" id="modal-card-date" class="form-input" placeholder="e.g. Nov 2 or Today">
+                <input type="date" id="modal-card-date" class="form-input">
               </div>
               <div class="form-group" style="flex: 1;">
                 <label class="form-label">Tags (comma separated)</label>
@@ -64,14 +62,14 @@ export class ModalManager {
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                 <label class="form-label">Subtasks & Checklist</label>
-                <button class="btn" id="btn-add-subtask" style="padding: 4px 10px; font-size: 11px;"><i class="lucide-plus"></i> Add Item</button>
+                <button class="btn" id="btn-add-subtask" style="padding: 4px 10px; font-size: 11px;"><i data-lucide="plus" class="lucide-icon"></i> Add Item</button>
               </div>
               <div id="modal-subtasks-container" class="subtasks-list"></div>
             </div>
           </div>
           <div class="modal-footer">
             <button class="btn" id="btn-delete-card" style="background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); margin-right: auto;">
-              <i class="lucide-trash-2"></i> Delete
+              <i data-lucide="trash-2" class="lucide-icon"></i> Delete
             </button>
             <button class="btn modal-close" data-target="card-modal">Cancel</button>
             <button class="btn btn-primary" id="btn-save-card">Save Action</button>
@@ -84,7 +82,7 @@ export class ModalManager {
         <div class="modal-card" style="max-width: 420px;">
           <div class="modal-header">
             <h3 class="font-display">Add New Column</h3>
-            <button class="btn btn-icon modal-close" data-target="col-modal"><i class="lucide-x"></i></button>
+            <button class="btn btn-icon modal-close" data-target="col-modal"><i data-lucide="x" class="lucide-icon"></i></button>
           </div>
           <div class="modal-body">
             <div class="form-group">
@@ -107,8 +105,8 @@ export class ModalManager {
       <div id="db-modal" class="modal-overlay">
         <div class="modal-card">
           <div class="modal-header">
-            <h3 class="font-display"><i class="lucide-database" style="color:var(--accent-primary);"></i> Database Management & Persistence</h3>
-            <button class="btn btn-icon modal-close" data-target="db-modal"><i class="lucide-x"></i></button>
+            <h3 class="font-display"><i data-lucide="database" class="lucide-icon" style="color:var(--accent-primary);"></i> Database Management & Persistence</h3>
+            <button class="btn btn-icon modal-close" data-target="db-modal"><i data-lucide="x" class="lucide-icon"></i></button>
           </div>
           <div class="modal-body">
             <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5;">
@@ -117,16 +115,16 @@ export class ModalManager {
 
             <div style="display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
               <button class="btn btn-primary" id="btn-save-db-now" style="flex: 1;">
-                <i class="lucide-refresh-cw"></i> Save Database Now
+                <i data-lucide="refresh-cw" class="lucide-icon"></i> Save Database Now
               </button>
               <button class="btn" id="btn-create-snapshot" style="flex: 1;">
-                <i class="lucide-save"></i> Save Snapshot
+                <i data-lucide="save" class="lucide-icon"></i> Save Snapshot
               </button>
               <button class="btn" id="btn-export-json" style="flex: 1;">
-                <i class="lucide-download"></i> Export JSON
+                <i data-lucide="download" class="lucide-icon"></i> Export JSON
               </button>
               <button class="btn" id="btn-import-json" style="flex: 1;">
-                <i class="lucide-upload"></i> Import Backup
+                <i data-lucide="upload" class="lucide-icon"></i> Import Backup
               </button>
               <input type="file" id="import-file-input" accept=".json" style="display: none;">
             </div>
@@ -247,7 +245,7 @@ export class ModalManager {
 
     // Populate columns select dropdown
     const colSelect = document.getElementById('modal-card-column');
-    colSelect.innerHTML = this.app.board.columns.map(col => 
+    colSelect.innerHTML = this.app.board.columns.map(col =>
       `<option value="${col.id}" ${col.id === (card.columnId || 'todo') ? 'selected' : ''}>${col.title}</option>`
     ).join('');
 
@@ -277,7 +275,7 @@ export class ModalManager {
     item.innerHTML = `
       <input type="checkbox" class="subtask-checkbox" ${completed ? 'checked' : ''}>
       <input type="text" class="form-input subtask-input" value="${this.escapeHTML(text)}" placeholder="Subtask description..." style="padding: 4px 8px; font-size: 13px;">
-      <button class="btn btn-icon btn-remove-st" style="width: 28px; height: 28px;"><i class="lucide-x"></i></button>
+      <button class="btn btn-icon btn-remove-st" style="width: 28px; height: 28px;"><i data-lucide="x" class="lucide-icon"></i></button>
     `;
 
     item.querySelector('.btn-remove-st').addEventListener('click', () => item.remove());
@@ -374,7 +372,7 @@ export class ModalManager {
   }
 
   escapeHTML(str) {
-    return (str || '').replace(/[&<>'"]/g, 
+    return (str || '').replace(/[&<>'"]/g,
       tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
     );
   }
