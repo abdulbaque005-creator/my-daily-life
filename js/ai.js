@@ -8,16 +8,16 @@ export class AICopilot {
 
   async processMessage(userPrompt) {
     const text = userPrompt.trim().toLowerCase();
-    
+
     // Command 1: Auto-generate cards from prompt (e.g., "create 3 tasks for landing page" or "add task...")
     if (text.startsWith('create') || text.startsWith('add') || text.includes('task')) {
       const matchNum = text.match(/\d+/);
       const count = matchNum ? parseInt(matchNum[0]) : 1;
-      
+
       if (text.includes('tasks for') || text.includes('task for') || text.includes('generate')) {
         const topic = userPrompt.replace(/create|add|generate|\d+|tasks|task|for/gi, '').trim() || 'Project Sprint';
         const generated = this.generateTasksForTopic(topic, count);
-        
+
         generated.forEach(cardData => {
           this.board.addCard(cardData.columnId || 'todo', cardData);
         });
