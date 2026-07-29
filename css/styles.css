@@ -5,12 +5,13 @@
    CSS Custom Properties & Theme Variables
    ========================================================================== */
 
-:root, [data-theme="dark"] {
+:root,
+[data-theme="dark"] {
   --bg-app: #0b0e14;
   --bg-sidebar: #090c10;
   --bg-header: rgba(11, 14, 20, 0.85);
   --bg-canvas: #0e121b;
-  
+
   --bg-column: rgba(18, 23, 34, 0.7);
   --bg-card: rgba(22, 28, 42, 0.85);
   --bg-card-hover: rgba(30, 38, 56, 0.95);
@@ -102,7 +103,9 @@
 }
 
 /* Base Resets */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -117,7 +120,11 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-h1, h2, h3, h4, .font-display {
+h1,
+h2,
+h3,
+h4,
+.font-display {
   font-family: var(--font-display);
 }
 
@@ -126,13 +133,16 @@ h1, h2, h3, h4, .font-display {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border-light);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
@@ -489,11 +499,22 @@ h1, h2, h3, h4, .font-display {
 }
 
 /* Theme Switcher Button */
-.theme-icon-light { display: none; }
-.theme-icon-dark { display: inline-block; }
+.theme-icon-light {
+  display: none;
+}
 
-[data-theme="light"] .theme-icon-light { display: inline-block; color: #f59e0b; }
-[data-theme="light"] .theme-icon-dark { display: none; }
+.theme-icon-dark {
+  display: inline-block;
+}
+
+[data-theme="light"] .theme-icon-light {
+  display: inline-block;
+  color: #f59e0b;
+}
+
+[data-theme="light"] .theme-icon-dark {
+  display: none;
+}
 
 /* Sprint Workspace Meta Toolbar */
 .meta-toolbar {
@@ -526,7 +547,10 @@ h1, h2, h3, h4, .font-display {
   background: transparent;
   cursor: pointer;
 }
-.star-btn:hover { color: #f59e0b; }
+
+.star-btn:hover {
+  color: #f59e0b;
+}
 
 .avatar-stack {
   display: flex;
@@ -653,11 +677,25 @@ h1, h2, h3, h4, .font-display {
 }
 
 /* Column Theme Color Overrides in Dark Mode */
-.column[data-col-id="todo"] { background-color: var(--col-bg-todo); }
-.column[data-col-id="in_progress"] { background-color: var(--col-bg-progress); }
-.column[data-col-id="in_review"] { background-color: var(--col-bg-review); }
-.column[data-col-id="blocked"] { background-color: var(--col-bg-blocked); }
-.column[data-col-id="done"] { background-color: var(--col-bg-done); }
+.column[data-col-id="todo"] {
+  background-color: var(--col-bg-todo);
+}
+
+.column[data-col-id="in_progress"] {
+  background-color: var(--col-bg-progress);
+}
+
+.column[data-col-id="in_review"] {
+  background-color: var(--col-bg-review);
+}
+
+.column[data-col-id="blocked"] {
+  background-color: var(--col-bg-blocked);
+}
+
+.column[data-col-id="done"] {
+  background-color: var(--col-bg-done);
+}
 
 .column.drag-over {
   border-color: var(--accent-primary);
@@ -705,7 +743,10 @@ h1, h2, h3, h4, .font-display {
   border: none;
   color: var(--text-muted);
 }
-.btn-col-options:hover { color: var(--text-primary); }
+
+.btn-col-options:hover {
+  color: var(--text-primary);
+}
 
 .column-cards-container {
   flex: 1;
@@ -1098,7 +1139,9 @@ h1, h2, h3, h4, .font-display {
   color: var(--text-secondary);
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input,
+.form-select,
+.form-textarea {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg-input);
@@ -1111,7 +1154,9 @@ h1, h2, h3, h4, .font-display {
   transition: border-color 0.2s ease;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
   border-color: var(--accent-primary);
 }
 
@@ -1146,9 +1191,11 @@ h1, h2, h3, h4, .font-display {
     position: fixed;
     transform: translateX(-100%);
   }
+
   .sidebar.mobile-open {
     transform: translateX(0);
   }
+
   .btn-text {
     display: none;
   }
