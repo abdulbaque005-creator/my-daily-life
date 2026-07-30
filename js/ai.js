@@ -9,8 +9,38 @@ class AICopilot {
   async processMessage(userPrompt) {
     const text = userPrompt.trim().toLowerCase();
 
-    // Command 1: Auto-generate cards from prompt (e.g., "create 3 tasks for landing page" or "add task...")
-    if (text.startsWith('create') || text.startsWith('add') || text.includes('task')) {
+    // Command 1: Delete all tasks
+    if (text === 'delete all the tasks' || text === 'delete all tasks') {
+      const total = this.board.cards.length;
+      if (total === 0) {
+        return { reply: 'Your board is already empty!' };
+      }
+      // Delete every card
+      [...this.board.cards].forEach(c => this.board.deleteCard(c.id));
+      return {
+        reply: `🗑️ Deleted all **${total} task(s)** from the board.`,
+        actionTaken: 'DELETED_ALL'
+      };
+    }
+
+    // Command 2: Delete specific task
+    if (text.startsWith('delete task ')) {
+      const taskName = text.replace('delete task', '').trim().toLowerCase();
+      const cardToDelete = this.board.cards.find(c => c.title.toLowerCase() === taskName);
+      
+      if (cardToDelete) {
+        this.board.deleteCard(cardToDelete.id);
+        return {
+          reply: `🗑️ Deleted task **"${cardToDelete.title}"**.`,
+          actionTaken: 'DELETED_CARD'
+        };
+      } else {
+        return { reply: `❌ Could not find a task named "${taskName}". Please check the spelling.` };
+      }
+    }
+
+    // Command 3: Auto-generate cards from prompt
+    if (text.startsWith('create ') || text.startsWith('add ') || (text.includes('generate') && text.includes('task'))) {
       const matchNum = text.match(/\d+/);
       const count = matchNum ? parseInt(matchNum[0]) : 1;
 
@@ -28,15 +58,89 @@ class AICopilot {
         };
       } else {
         // Direct single card creation
-        const cardTitle = userPrompt.replace(/create|add|task/gi, '').trim() || 'New Task';
+        let cleanPrompt = userPrompt;
+        
+        // Smarter Time Parsing (e.g. "from 11 pm to 12 am")
+        let startTime = '';
+        let dueTime = '';
+        let estimate = '';
+        
+        const parseTimeStr = (t) => {
+          if (!t) return null;
+          t = t.toLowerCase().replace(/\./g, '');
+          let m = t.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+          if (!m) return null;
+          let h = parseInt(m[1]);
+          let mins = m[2] ? parseInt(m[2]) : 0;
+          let mod = m[3];
+          if (mod === 'pm' && h < 12) h += 12;
+          if (mod === 'am' && h === 12) h = 0;
+          return { h, mins, str: `${h.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}` };
+        };
+
+        const timeMatch = cleanPrompt.match(/(?:from\s+)?(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|am|pm)?)\s+(?:to|until|-)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|am|pm)?)/i);
+        
+        if (timeMatch) {
+          const startObj = parseTimeStr(timeMatch[1]);
+          const endObj = parseTimeStr(timeMatch[2]);
+          if (startObj && endObj) {
+            startTime = startObj.str;
+            dueTime = endObj.str;
+            let diff = (endObj.h * 60 + endObj.mins) - (startObj.h * 60 + startObj.mins);
+            if (diff < 0) diff += 24 * 60;
+            estimate = diff.toString();
+            cleanPrompt = cleanPrompt.replace(timeMatch[0], '').trim();
+          }
+        } else {
+          // Check for single time and estimate (consuming leading "and" or ",")
+          const singleTime = cleanPrompt.match(/(?:,\s*)?(?:and\s+)?(?:at|for|by)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?|am|pm)?)/i);
+          const estMatch = cleanPrompt.match(/(?:,\s*)?(?:and\s+)?(?:the\s+)?(?:estimate|estimated\s*time|time\s*is|takes)\s*(?:is|of)?\s*(\d+)\s*(?:m|min|mins|minutes)\b/i);
+          
+          if (singleTime) {
+            const sObj = parseTimeStr(singleTime[1]);
+            if (sObj) {
+              startTime = sObj.str;
+              cleanPrompt = cleanPrompt.replace(singleTime[0], '').trim();
+            }
+          }
+          if (estMatch) {
+            estimate = estMatch[1];
+            cleanPrompt = cleanPrompt.replace(estMatch[0], '').trim();
+            
+            if (startTime && estimate) {
+              const startObj = parseTimeStr(startTime);
+              let totalMins = startObj.h * 60 + startObj.mins + parseInt(estimate);
+              let dueH = Math.floor(totalMins / 60) % 24;
+              let dueM = totalMins % 60;
+              dueTime = `${dueH.toString().padStart(2, '0')}:${dueM.toString().padStart(2, '0')}`;
+            }
+          }
+        }
+
+        // Cleanup prompt to get the title without removing every "a" in the string!
+        let cardTitle = cleanPrompt
+          .replace(/^(?:please\s+)?(?:create|add|make|generate)?\s*(?:a|an)?\s*task\s*(?:to|that\s*i\s*have\s*to|for)?\s*/i, '')
+          .replace(/^that\s*i\s*have\s*to\s*/i, '')
+          .replace(/^[,\s]*(?:and\s+)?/i, '')
+          .replace(/(?:,|\s*and\s*|\.|\s)+$/i, '')
+          .trim();
+          
+        cardTitle = cardTitle || 'New Task';
+        cardTitle = cardTitle.charAt(0).toUpperCase() + cardTitle.slice(1);
         const newCard = this.board.addCard('todo', {
           title: cardTitle,
           description: 'Created by AI Assistant',
           priority: 'high',
-          tags: ['AI-Generated']
+          tags: ['AI-Generated'],
+          startTime: startTime,
+          dueTime: dueTime,
+          estimate: estimate
         });
+        
+        let timeMsg = estimate ? `\n🕒 Auto-scheduled from **${startTime}** to **${dueTime}** (${estimate} mins).` : '';
+
         return {
-          reply: `✅ Added task **"${newCard.title}"** with High priority to your **To-Do** column.`,
+          reply: `✅ Added task **"${newCard.title}"** with High priority to your **To-Do** column.${timeMsg}`,
           actionTaken: 'CREATED_CARD'
         };
       }

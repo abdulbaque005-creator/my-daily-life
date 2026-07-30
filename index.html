@@ -16,6 +16,10 @@
 
   <!-- Main Stylesheet -->
   <link rel="stylesheet" href="./css/styles.css">
+
+  <!-- Flatpickr (Date/Time Dropdown) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
 </head>
 <body>
   <!-- Auth Overlay -->
@@ -31,13 +35,19 @@
           </p>
           
           <div class="input-group" style="margin-bottom: 16px;">
-            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);">Email or Phone</label>
-            <input type="text" id="auth-input" class="search-input" placeholder="Enter email or phone..." style="padding: 12px 16px; font-size: 14px; background: var(--bg-body);">
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);" id="auth-input-label">Username</label>
+            <input type="text" id="auth-input" class="search-input" placeholder="Choose a username..." style="padding: 12px 16px; font-size: 14px; background: var(--bg-body);">
           </div>
 
-          <div class="input-group" style="margin-bottom: 24px;">
+          <div class="input-group" style="margin-bottom: 16px;" id="auth-password-group">
             <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);">Password</label>
             <input type="password" id="auth-password" class="search-input" placeholder="Enter password..." style="padding: 12px 16px; font-size: 14px; background: var(--bg-body);">
+          </div>
+
+          <!-- Display Name (shown after sign-up) -->
+          <div class="input-group" style="margin-bottom: 24px; display: none;" id="auth-name-group">
+            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-secondary);">What should I call you? 😊</label>
+            <input type="text" id="auth-display-name" class="search-input" placeholder="e.g. Abdul, Baque, Boss..." style="padding: 12px 16px; font-size: 14px; background: var(--bg-body);">
           </div>
 
           <button id="btn-auth-submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 15px; font-weight: 600; justify-content: center; margin-bottom: 16px;">
@@ -50,6 +60,13 @@
           </div>
       </div>
     </div>
+  </div>
+
+  <!-- Ambient Floating Background Orbs -->
+  <div class="ambient-orbs">
+    <div class="ambient-orb"></div>
+    <div class="ambient-orb"></div>
+    <div class="ambient-orb"></div>
   </div>
 
   <div class="app-layout">
@@ -73,12 +90,12 @@
           <span>Dashboard</span>
         </a>
         <a href="#" class="nav-item">
-          <i data-lucide="map" class="lucide-icon"></i>
-          <span>Roadmap</span>
+          <i data-lucide="timer" class="lucide-icon"></i>
+          <span>Focus Timer</span>
         </a>
         <a href="#" class="nav-item">
-          <i data-lucide="compass" class="lucide-icon"></i>
-          <span>Horizon</span>
+          <i data-lucide="target" class="lucide-icon"></i>
+          <span>Habits</span>
         </a>
         <a href="#" class="nav-item">
           <i data-lucide="bar-chart-3" class="lucide-icon"></i>
@@ -110,12 +127,20 @@
           <i data-lucide="sparkles" class="lucide-icon" style="color:var(--accent-pink);"></i>
           <span>AI Copilot</span>
         </button>
+        <button class="nav-item btn-sidebar-action" id="btn-sidebar-settings">
+          <i data-lucide="settings" class="lucide-icon"></i>
+          <span>Settings</span>
+        </button>
+        <button class="nav-item btn-sidebar-action" id="btn-sidebar-logout" style="color: var(--priority-urgent);">
+          <i data-lucide="log-out" class="lucide-icon"></i>
+          <span>Log Out</span>
+        </button>
         <div class="user-profile">
           <div class="user-avatar-group">
             <img src="./Me.jpeg" alt="User Avatar" class="profile-img" style="object-fit: cover;">
             <div class="user-info">
-              <span class="user-name">Abdul Baque</span>
-              <span class="user-role">Developer</span>
+              <span class="user-name" id="sidebar-user-name">User</span>
+              <span class="user-role" id="sidebar-user-role">Member</span>
             </div>
           </div>
         </div>
@@ -191,8 +216,15 @@
         </div>
 
         <div class="meta-controls">
-          <div class="filter-pill-group">
-            <button class="filter-pill active" data-priority="ALL">All Tasks</button>
+          <div class="filter-pill-group" id="time-filters">
+            <button class="filter-pill" data-time="yesterday">Yesterday</button>
+            <button class="filter-pill active" data-time="today">Today</button>
+            <button class="filter-pill" data-time="upcoming">Upcoming</button>
+            <button class="filter-pill" data-time="all">All Sprints</button>
+          </div>
+
+          <div class="filter-pill-group" id="priority-filters">
+            <button class="filter-pill active" data-priority="ALL">All Priorities</button>
             <button class="filter-pill" data-priority="urgent">🔴 Urgent</button>
             <button class="filter-pill" data-priority="high">🟡 High</button>
             <button class="filter-pill" data-priority="medium">🔵 Medium</button>
@@ -216,23 +248,139 @@
       </div> <!-- End view-board -->
 
       <!-- Dashboard View -->
-      <div id="view-dashboard" class="app-view" style="display:none; padding: 40px;">
-        <h1 class="sprint-title" style="margin-bottom: 24px;">Workspace Dashboard</h1>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
-          <div class="card" style="padding: 24px; text-align: center;">
-             <i data-lucide="activity" class="lucide-icon" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 12px;"></i>
-             <h3 style="color: var(--text-primary); margin-bottom: 8px;">Productivity Score</h3>
-             <p id="dash-productivity" style="font-size: 24px; font-weight: bold; color: var(--accent-pink);">0%</p>
+      <div id="view-dashboard" class="app-view" style="display:none; overflow-y: auto; height: calc(100vh - 60px);">
+        <div class="dashboard-container">
+
+          <!-- Greeting Banner -->
+          <div class="dash-greeting">
+            <h1 id="dash-greeting-text">Good Evening, Abdul 🌙</h1>
+            <p id="dash-greeting-sub">You have a productive day ahead. Let's make it count!</p>
+            <div class="greeting-quote" id="dash-quote">"The secret of getting ahead is getting started." — Mark Twain</div>
           </div>
-          <div class="card" style="padding: 24px; text-align: center;">
-             <i data-lucide="check-circle-2" class="lucide-icon" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 12px;"></i>
-             <h3 style="color: var(--text-primary); margin-bottom: 8px;">Actions Completed</h3>
-             <p id="dash-completed" style="font-size: 24px; font-weight: bold; color: var(--accent-pink);">0</p>
+
+          <!-- Stats Row -->
+          <div class="dash-stats-row">
+            <div class="stat-card">
+              <div class="stat-icon purple"><i data-lucide="list-checks" class="lucide-icon"></i></div>
+              <div class="stat-value" id="stat-total">0</div>
+              <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green"><i data-lucide="check-circle-2" class="lucide-icon"></i></div>
+              <div class="stat-value" id="stat-done">0</div>
+              <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon pink"><i data-lucide="flame" class="lucide-icon"></i></div>
+              <div class="stat-value" id="stat-streak">0%</div>
+              <div class="stat-label">Productivity</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon cyan"><i data-lucide="timer" class="lucide-icon"></i></div>
+              <div class="stat-value" id="stat-focus">0m</div>
+              <div class="stat-label">Focus Time</div>
+            </div>
           </div>
-          <div class="card" style="padding: 24px; text-align: center;">
-             <i data-lucide="clock" class="lucide-icon" style="font-size: 32px; color: var(--accent-primary); margin-bottom: 12px;"></i>
-             <h3 style="color: var(--text-primary); margin-bottom: 8px;">Upcoming Deadlines</h3>
-             <p id="dash-deadlines" style="font-size: 24px; font-weight: bold; color: var(--accent-pink);">0</p>
+
+          <!-- Widgets Grid -->
+          <div class="dash-widgets-grid">
+
+            <!-- Pomodoro Timer Widget -->
+            <div class="widget-card">
+              <div class="widget-header">
+                <div class="widget-title"><i data-lucide="timer" class="lucide-icon" style="width:18px;height:18px;color:var(--accent-pink)"></i> Focus Timer</div>
+              </div>
+              <div class="pomodoro-body">
+                <div class="pomodoro-ring-wrap">
+                  <svg width="160" height="160" viewBox="0 0 160 160">
+                    <defs>
+                      <linearGradient id="pomGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#8b5cf6" />
+                        <stop offset="100%" stop-color="#ec4899" />
+                      </linearGradient>
+                    </defs>
+                    <circle class="pomodoro-ring-bg" cx="80" cy="80" r="70" />
+                    <circle class="pomodoro-ring-fg" id="pomo-ring" cx="80" cy="80" r="70"
+                      stroke-dasharray="439.82" stroke-dashoffset="0" />
+                  </svg>
+                  <div class="pomodoro-time-display">
+                    <span class="pomo-time" id="pomo-time">25:00</span>
+                    <span class="pomo-label" id="pomo-label">Focus</span>
+                  </div>
+                </div>
+                <div class="pomodoro-controls">
+                  <button class="pomo-btn active" id="pomo-start">Start</button>
+                  <button class="pomo-btn" id="pomo-reset">Reset</button>
+                  <button class="pomo-btn" id="pomo-break">Break</button>
+                </div>
+
+                <!-- Direct Focus & Break Duration Customizer -->
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 13px; flex-wrap: wrap; justify-content: center;">
+                  <span style="color: var(--text-muted); font-size: 12px;">Focus:</span>
+                  <input type="number" id="pomo-custom-focus" min="1" max="180" value="25" style="width: 60px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--bg-column); color: var(--text-primary); text-align: center; font-size: 13px; font-weight: 600;">
+                  <span style="color: var(--text-muted); font-size: 12px;">m</span>
+                  
+                  <span style="color: var(--text-muted); font-size: 12px; margin-left: 6px;">Break:</span>
+                  <input type="number" id="pomo-custom-break" min="1" max="60" value="5" style="width: 55px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--bg-column); color: var(--text-primary); text-align: center; font-size: 13px; font-weight: 600;">
+                  <span style="color: var(--text-muted); font-size: 12px;">m</span>
+
+                  <button id="btn-apply-pomo-custom" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">Set</button>
+                </div>
+
+                <!-- Quick Presets -->
+                <div style="display: flex; gap: 6px; margin-top: 4px;">
+                  <button class="pomo-preset-btn" data-mins="15">15m</button>
+                  <button class="pomo-preset-btn" data-mins="20">20m</button>
+                  <button class="pomo-preset-btn" data-mins="25">25m</button>
+                  <button class="pomo-preset-btn" data-mins="45">45m</button>
+                  <button class="pomo-preset-btn" data-mins="60">60m</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Today's Schedule Widget -->
+            <div class="widget-card">
+              <div class="widget-header">
+                <div class="widget-title"><i data-lucide="calendar-clock" class="lucide-icon" style="width:18px;height:18px;color:#06b6d4"></i> Today's Schedule</div>
+              </div>
+              <div class="schedule-list" id="dash-schedule">
+                <div class="schedule-empty">No scheduled tasks for today yet. Add tasks with a time!</div>
+              </div>
+            </div>
+
+            <!-- Habit Tracker Widget -->
+            <div class="widget-card">
+              <div class="widget-header">
+                <div class="widget-title"><i data-lucide="target" class="lucide-icon" style="width:18px;height:18px;color:#10b981"></i> Daily Habits</div>
+                <button class="btn btn-icon" id="btn-add-habit" title="Add Custom Habit" style="width:28px;height:28px;"><i data-lucide="plus" class="lucide-icon"></i></button>
+              </div>
+              <div id="add-habit-form" style="display: none; gap: 8px; margin-bottom: 12px;">
+                <input type="text" id="habit-emoji-input" placeholder="⚡" value="✨" style="width: 45px; padding: 6px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--bg-column); font-size: 14px;">
+                <input type="text" id="habit-name-input" placeholder="New habit name..." style="flex: 1; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--bg-column); color: var(--text-primary); font-size: 13px;">
+                <button class="btn btn-primary" id="btn-save-habit" style="padding: 6px 12px; font-size: 12px;">Add</button>
+              </div>
+              <div class="habit-list" id="dash-habits">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Quick Journal Widget -->
+            <div class="widget-card">
+              <div class="widget-header">
+                <div class="widget-title"><i data-lucide="book-heart" class="lucide-icon" style="width:18px;height:18px;color:var(--accent-primary)"></i> Quick Journal</div>
+              </div>
+              <div class="journal-body">
+                <textarea class="journal-textarea" id="journal-input" placeholder="How was your day? What are you grateful for? Jot down your thoughts..."></textarea>
+                <div class="journal-footer">
+                  <span class="journal-date" id="journal-date"></span>
+                  <button class="journal-save-btn" id="journal-save">Save Entry</button>
+                </div>
+                <div class="journal-entries" id="journal-entries">
+                  <!-- Populated by JS -->
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -326,6 +474,102 @@
 
     </main>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal-overlay" style="display:none;">
+      <div class="modal-card" style="max-width: 520px; width: 90%;">
+        <div class="modal-header">
+          <h2 class="modal-title"><i data-lucide="settings" class="lucide-icon" style="width:20px;height:20px;margin-right:8px;"></i> Settings</h2>
+          <button class="btn btn-icon" id="btn-close-settings"><i data-lucide="x" class="lucide-icon"></i></button>
+        </div>
+        <div style="padding: 24px; display: flex; flex-direction: column; gap: 24px; max-height: 70vh; overflow-y: auto;">
+
+          <!-- Profile Section -->
+          <div>
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Profile</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Display Name</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">The name shown in greetings</div>
+                </div>
+                <input type="text" id="settings-display-name" class="search-input" style="width: 160px; padding: 8px 12px; font-size: 13px; background: var(--bg-input); text-align: right;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Focus Timer Section -->
+          <div>
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Focus Timer</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Focus Duration</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">How long each focus session lasts</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="settings-focus-mins" class="search-input" min="1" max="120" style="width: 70px; padding: 8px 12px; font-size: 13px; background: var(--bg-input); text-align: center;">
+                  <span style="font-size: 13px; color: var(--text-muted);">mins</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Break Duration</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">How long each break lasts</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="settings-break-mins" class="search-input" min="1" max="60" style="width: 70px; padding: 8px 12px; font-size: 13px; background: var(--bg-input); text-align: center;">
+                  <span style="font-size: 13px; color: var(--text-muted);">mins</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications Section -->
+          <div>
+            <h3 style="font-size: 14px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Notifications & Reminders</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Task Due Reminders</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Get notified before a task is due</div>
+                </div>
+                <input type="checkbox" id="settings-due-reminders" style="accent-color: var(--accent-primary); width: 18px; height: 18px;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Reminder Time</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Minutes before due to remind</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="settings-reminder-mins" class="search-input" min="1" max="60" style="width: 70px; padding: 8px 12px; font-size: 13px; background: var(--bg-input); text-align: center;">
+                  <span style="font-size: 13px; color: var(--text-muted);">mins</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Focus Timer Alert</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Pop-up alert when timer ends</div>
+                </div>
+                <input type="checkbox" id="settings-timer-alert" style="accent-color: var(--accent-primary); width: 18px; height: 18px;">
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--bg-column); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                <div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--text-primary);">Sound Alerts</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">Play a sound for notifications</div>
+                </div>
+                <input type="checkbox" id="settings-sound-alerts" style="accent-color: var(--accent-primary); width: 18px; height: 18px;">
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <button class="btn btn-primary" id="btn-save-settings" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600; justify-content: center;">
+            <i data-lucide="check" class="lucide-icon" style="width:16px;height:16px;margin-right:8px;"></i> Save Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- AI Copilot Side Drawer -->
     <aside id="ai-drawer" class="ai-drawer collapsed">
       <div class="ai-drawer-header">
@@ -339,15 +583,18 @@
       <div id="ai-chat-messages" class="ai-chat-messages">
         <div class="chat-bubble ai">
           👋 Hi! I'm your <strong>AI Board Copilot</strong>.<br><br>
-          I can generate tasks, move cards between columns, summarize project progress, and answer questions about your board!
+          • If you have to add a task, use a command like "add task [name]" or "create 3 tasks for...".<br>
+          • If you have to delete all the tasks, use "delete all the tasks".<br>
+          • If you have to delete a specific task, use "delete task [name]".
         </div>
       </div>
 
       <div class="ai-quick-prompts">
+        <span class="quick-prompt-chip">Add a task Read Book at 8 pm for 30 mins</span>
         <span class="quick-prompt-chip">Create 3 tasks for web launch</span>
+        <span class="quick-prompt-chip">Delete task Read Book</span>
         <span class="quick-prompt-chip">Show board progress summary</span>
-        <span class="quick-prompt-chip">Which tasks are urgent?</span>
-        <span class="quick-prompt-chip">Clear done tasks</span>
+        <span class="quick-prompt-chip">Delete all tasks</span>
       </div>
 
       <div class="ai-chat-input-area">
@@ -359,12 +606,16 @@
   <!-- Marked (Markdown Parser) -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
   <!-- Application Scripts -->
   <script src="js/db.js"></script>
   <script src="js/board.js"></script>
   <script src="js/ai.js"></script>
   <script src="js/modal.js"></script>
   <script src="js/knowledge.js"></script>
+  <script src="js/dashboard.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

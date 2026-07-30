@@ -46,11 +46,26 @@ class ModalManager {
             <div style="display: flex; gap: 16px;">
               <div class="form-group" style="flex: 1;">
                 <label class="form-label">Due Date</label>
-                <input type="date" id="modal-card-date" class="form-input">
+                <input type="text" id="modal-card-date" class="form-input" placeholder="Select Date...">
               </div>
               <div class="form-group" style="flex: 1;">
                 <label class="form-label">Tags (comma separated)</label>
-                <input type="text" id="modal-card-tags" class="form-input" placeholder="e.g. Audit, Compliance, UI">
+                <input type="text" id="modal-card-tags" class="form-input" placeholder="e.g. Audit, UI">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 16px;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Start Time</label>
+                <input type="text" id="modal-card-start-time" class="form-input" placeholder="Select Time...">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Due Time</label>
+                <input type="text" id="modal-card-time" class="form-input" placeholder="Select Time...">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label">Estimate (mins)</label>
+                <input type="number" id="modal-card-estimate" class="form-input" placeholder="e.g. 60" step="5" min="0">
               </div>
             </div>
 
@@ -154,6 +169,37 @@ class ModalManager {
       });
     });
 
+    // Initialize Flatpickr dropdowns
+    if (window.flatpickr) {
+      this.fpDate = flatpickr("#modal-card-date", {
+        dateFormat: "Y-m-d",
+      });
+      const timeConfig = {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: false
+      };
+      this.fpStartTime = flatpickr("#modal-card-start-time", timeConfig);
+      this.fpDueTime = flatpickr("#modal-card-time", timeConfig);
+    }
+
+    // Auto-calculate Estimate based on Start Time and Due Time
+    const calcEstimate = () => {
+      const start = document.getElementById('modal-card-start-time').value;
+      const end = document.getElementById('modal-card-time').value;
+      if (start && end) {
+        const [startH, startM] = start.split(':').map(Number);
+        const [endH, endM] = end.split(':').map(Number);
+        let diff = (endH * 60 + endM) - (startH * 60 + startM);
+        if (diff < 0) diff += 24 * 60; // handle passing midnight
+        document.getElementById('modal-card-estimate').value = diff;
+      }
+    };
+    
+    document.getElementById('modal-card-start-time').addEventListener('change', calcEstimate);
+    document.getElementById('modal-card-time').addEventListener('change', calcEstimate);
+
     // Save Card button
     document.getElementById('btn-save-card').addEventListener('click', () => {
       this.saveCardFromModal();
@@ -240,7 +286,17 @@ class ModalManager {
     document.getElementById('modal-card-title').value = card.title || '';
     document.getElementById('modal-card-desc').value = card.description || '';
     document.getElementById('modal-card-priority').value = card.priority || 'medium';
+    
+    // Update inputs and flatpickr instances
     document.getElementById('modal-card-date').value = card.dueDate || '';
+    document.getElementById('modal-card-start-time').value = card.startTime || '';
+    document.getElementById('modal-card-time').value = card.dueTime || '';
+    
+    if (this.fpDate) this.fpDate.setDate(card.dueDate || '');
+    if (this.fpStartTime) this.fpStartTime.setDate(card.startTime || '');
+    if (this.fpDueTime) this.fpDueTime.setDate(card.dueTime || '');
+
+    document.getElementById('modal-card-estimate').value = card.estimate || '';
     document.getElementById('modal-card-tags').value = (card.tags || []).join(', ');
 
     // Populate columns select dropdown
@@ -292,7 +348,16 @@ class ModalManager {
 
     const columnId = document.getElementById('modal-card-column').value;
     const priority = document.getElementById('modal-card-priority').value;
-    const dueDate = document.getElementById('modal-card-date').value;
+    let dueDate = document.getElementById('modal-card-date').value;
+    const startTime = document.getElementById('modal-card-start-time').value;
+    const dueTime = document.getElementById('modal-card-time').value;
+    const estimate = document.getElementById('modal-card-estimate').value;
+    
+    // Automatically assign today's date if none provided, anchoring it to the daily planner
+    if (!dueDate) {
+      dueDate = new Date().toLocaleDateString('en-CA');
+    }
+
     const tagsStr = document.getElementById('modal-card-tags').value;
     const tags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
     const description = document.getElementById('modal-card-desc').value;
@@ -306,7 +371,7 @@ class ModalManager {
       }
     });
 
-    const cardData = { title, columnId, priority, dueDate, tags, description, subtasks };
+    const cardData = { title, columnId, priority, dueDate, startTime, dueTime, estimate, tags, description, subtasks };
 
     if (this.activeCard && !this.activeCard.isNew && this.activeCard.id) {
       this.app.board.updateCard(this.activeCard.id, cardData);

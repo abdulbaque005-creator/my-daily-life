@@ -15,6 +15,7 @@ class BoardController {
     this.draggedCardId = null;
     this.searchQuery = '';
     this.priorityFilter = 'ALL';
+    this.timeFilter = 'today';
     this.onStateChangeCallbacks = [];
   }
 
@@ -148,6 +149,8 @@ class BoardController {
       description: cardData.description || '',
       priority: cardData.priority || 'medium',
       dueDate: cardData.dueDate || '',
+      dueTime: cardData.dueTime || '',
+      estimate: cardData.estimate || '',
       tags: cardData.tags || ['Action'],
       commentsCount: cardData.commentsCount || 0,
       attachmentsCount: cardData.attachmentsCount || 0,
@@ -238,9 +241,10 @@ class BoardController {
     }
   }
 
-  setFilter(search, priority) {
+  setFilter(search, priority, time) {
     if (search !== undefined) this.searchQuery = search.toLowerCase();
     if (priority !== undefined) this.priorityFilter = priority;
+    if (time !== undefined) this.timeFilter = time;
     this.render();
   }
 
@@ -248,6 +252,29 @@ class BoardController {
     return this.cards.filter(card => {
       if (card.columnId !== columnId) return false;
       if (this.priorityFilter !== 'ALL' && card.priority !== this.priorityFilter) return false;
+      
+      // Time Filtering Logic
+      if (this.timeFilter !== 'all') {
+        const today = new Date();
+        const dateString = today.toLocaleDateString('en-CA'); // YYYY-MM-DD local timezone
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayString = yesterday.toLocaleDateString('en-CA');
+
+        // Use dueDate, fallback to creation date (first 10 chars of ISO string)
+        const activeDate = card.dueDate || card.createdAt.substring(0, 10);
+        
+        if (this.timeFilter === 'today') {
+          // It's today if it matches today's date, or if it's "Today", "Now", etc.
+          if (activeDate !== dateString && activeDate.toLowerCase() !== 'today') return false;
+        } else if (this.timeFilter === 'yesterday') {
+          if (activeDate !== yesterdayString) return false;
+        } else if (this.timeFilter === 'upcoming') {
+          // If it's greater than today's date string
+          if (activeDate <= dateString && activeDate.toLowerCase() !== 'upcoming') return false;
+        }
+      }
+
       if (this.searchQuery) {
         const titleMatch = card.title.toLowerCase().includes(this.searchQuery);
         const descMatch = card.description.toLowerCase().includes(this.searchQuery);
@@ -376,10 +403,17 @@ class BoardController {
         <div class="card-footer" style="margin-top: 12px;">
           <div class="card-meta-group">
             <div style="display:flex; align-items:center; gap:10px;">
-              ${card.dueDate ? `
+              ${card.dueDate || card.dueTime ? `
                 <div class="meta-item ${isOverdue ? 'overdue' : ''}">
                   <i data-lucide="calendar" class="lucide-icon" style="font-size:12px;"></i>
-                  <span>${this.formatDate(card.dueDate)}</span>
+                  <span>${card.dueDate ? this.formatDate(card.dueDate) : ''} ${card.dueTime || ''}</span>
+                </div>
+              ` : ''}
+
+              ${card.estimate ? `
+                <div class="meta-item" title="Estimated Time">
+                  <i data-lucide="clock" class="lucide-icon" style="font-size:12px;"></i>
+                  <span>${card.estimate}m</span>
                 </div>
               ` : ''}
               

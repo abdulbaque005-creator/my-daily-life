@@ -8,6 +8,7 @@ class KanbanApp {
     this.board = new BoardController(this);
     this.modalManager = new ModalManager(this);
     this.aiCopilot = new AICopilot(this.board);
+    this.dashboard = new DashboardController(this);
     
     // Initialize Knowledge Base
     if (window.KnowledgeController) {
@@ -32,13 +33,16 @@ class KanbanApp {
     // 5. Init Board Controller
     await this.board.init();
 
-    // 6. Setup Sidebar & Header Listeners
+    // 6. Init Dashboard Controller (after board is ready)
+    this.dashboard.init();
+
+    // 7. Setup Sidebar & Header Listeners
     this.attachNavigationListeners();
 
-    // 7. Setup AI Chat UI
+    // 8. Setup AI Chat UI
     this.attachAIListeners();
 
-    // 8. Global Keyboard Shortcuts
+    // 9. Global Keyboard Shortcuts
     this.attachGlobalShortcuts();
 
     // Subscribe to board state changes to update the live DB sync badge and dynamic views
@@ -78,8 +82,12 @@ class KanbanApp {
     const authToggle = document.getElementById('btn-auth-toggle');
     const authSubtitle = document.getElementById('auth-subtitle');
     const authBtnText = document.getElementById('auth-btn-text');
+    const authNameGroup = document.getElementById('auth-name-group');
+    const authDisplayName = document.getElementById('auth-display-name');
+    const authPasswordGroup = document.getElementById('auth-password-group');
     
     let isSignUp = false;
+    let awaitingDisplayName = false;
 
     if (!user && authOverlay) {
       authOverlay.style.display = 'flex';
@@ -88,6 +96,12 @@ class KanbanApp {
         authToggle.addEventListener('click', (e) => {
           e.preventDefault();
           isSignUp = !isSignUp;
+          awaitingDisplayName = false;
+          // Reset view
+          if (authNameGroup) authNameGroup.style.display = 'none';
+          if (authPasswordGroup) authPasswordGroup.style.display = '';
+          authInput.parentElement.style.display = '';
+          
           if (isSignUp) {
             authSubtitle.innerText = 'Create a new AI workspace account';
             authBtnText.innerText = 'Sign Up';
@@ -100,56 +114,82 @@ class KanbanApp {
         });
       }
 
-      const handleAuth = async () => {
+      const handleAuth = () => {
+        // Step 2: Collecting display name after sign-up
+        if (awaitingDisplayName) {
+          const displayName = authDisplayName.value.trim();
+          if (!displayName) {
+            authDisplayName.style.borderColor = 'var(--accent-pink)';
+            setTimeout(() => { authDisplayName.style.borderColor = 'var(--border-subtle)'; }, 2000);
+            return;
+          }
+          localStorage.setItem('kanban_display_name', displayName);
+          // Finish auth — close overlay
+          this.closeAuthOverlay(authOverlay);
+          return;
+        }
+
+        // Step 1: Username + Password
         const identifier = authInput.value.trim();
         const password = authPassword.value.trim();
         
         if (identifier.length < 3 || password.length < 3) {
-           authInput.style.borderColor = 'var(--accent-red)';
-           authPassword.style.borderColor = 'var(--accent-red)';
-           setTimeout(() => {
-             authInput.style.borderColor = 'var(--border-subtle)';
-             authPassword.style.borderColor = 'var(--border-subtle)';
-           }, 2000);
-           return;
+          authInput.style.borderColor = 'var(--accent-pink)';
+          authPassword.style.borderColor = 'var(--accent-pink)';
+          setTimeout(() => {
+            authInput.style.borderColor = 'var(--border-subtle)';
+            authPassword.style.borderColor = 'var(--border-subtle)';
+          }, 2000);
+          return;
         }
 
-        // Loading state
-        const spinner = authSubmit.querySelector('.auth-spinner');
-        if (authBtnText) authBtnText.style.display = 'none';
-        if (spinner) spinner.style.display = 'block';
-        authSubmit.disabled = true;
-
-        try {
-          const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/login';
-          const response = await fetch(`http://localhost:3000${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identifier, password })
-          });
-          
-          const data = await response.json();
-
-          if (response.ok) {
-            localStorage.setItem('kanban_user', identifier);
-            authOverlay.style.opacity = '0';
-            authOverlay.style.transition = 'opacity 0.4s ease';
-            setTimeout(() => {
-              authOverlay.style.display = 'none';
-              if (authBtnText) authBtnText.style.display = '';
-              if (spinner) spinner.style.display = 'none';
-              authSubmit.disabled = false;
-              authOverlay.style.opacity = '1';
-            }, 400);
-          } else {
-            throw new Error(data.error || 'Authentication failed');
+        if (isSignUp) {
+          // Save credentials locally
+          const users = JSON.parse(localStorage.getItem('kanban_users') || '{}');
+          if (users[identifier]) {
+            alert('Username already taken. Please choose another one.');
+            return;
           }
-        } catch (err) {
-           console.error(err);
-           alert(err.message);
-           if (authBtnText) authBtnText.style.display = '';
-           if (spinner) spinner.style.display = 'none';
-           authSubmit.disabled = false;
+          users[identifier] = { password };
+          localStorage.setItem('kanban_users', JSON.stringify(users));
+          localStorage.setItem('kanban_user', identifier);
+
+          // Now show the display name step
+          awaitingDisplayName = true;
+          authInput.parentElement.style.display = 'none';
+          if (authPasswordGroup) authPasswordGroup.style.display = 'none';
+          if (authToggle) authToggle.style.display = 'none';
+          if (authNameGroup) authNameGroup.style.display = '';
+          authSubtitle.innerText = 'Almost there! One last thing...';
+          authBtnText.innerText = 'Let\'s Go! 🚀';
+          authDisplayName.focus();
+        } else {
+          // Sign in — check stored credentials
+          const users = JSON.parse(localStorage.getItem('kanban_users') || '{}');
+          if (!users[identifier]) {
+            alert('No account found with that username. Please sign up first.');
+            return;
+          }
+          if (users[identifier].password !== password) {
+            alert('Incorrect password. Please try again.');
+            return;
+          }
+          localStorage.setItem('kanban_user', identifier);
+          
+          // If they already have a display name stored, just close
+          if (localStorage.getItem('kanban_display_name')) {
+            this.closeAuthOverlay(authOverlay);
+          } else {
+            // Ask for display name on first sign-in too
+            awaitingDisplayName = true;
+            authInput.parentElement.style.display = 'none';
+            if (authPasswordGroup) authPasswordGroup.style.display = 'none';
+            if (authToggle) authToggle.style.display = 'none';
+            if (authNameGroup) authNameGroup.style.display = '';
+            authSubtitle.innerText = 'Welcome back! What should I call you?';
+            authBtnText.innerText = 'Let\'s Go! 🚀';
+            authDisplayName.focus();
+          }
         }
       };
 
@@ -161,9 +201,107 @@ class KanbanApp {
       authInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') handleAuth();
       });
+      if (authDisplayName) {
+        authDisplayName.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') handleAuth();
+        });
+      }
     } else if (authOverlay) {
       authOverlay.style.display = 'none';
     }
+  }
+
+  closeAuthOverlay(overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity 0.4s ease';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      overlay.style.opacity = '1';
+      // Refresh greeting with the new name
+      if (this.dashboard) this.dashboard.updateGreeting();
+    }, 400);
+  }
+
+  logout() {
+    if (confirm('Are you sure you want to log out?')) {
+      localStorage.removeItem('kanban_user');
+      const authOverlay = document.getElementById('auth-overlay');
+      if (authOverlay) {
+        authOverlay.style.display = 'flex';
+        authOverlay.style.opacity = '1';
+        // Reset form
+        const authInput = document.getElementById('auth-input');
+        const authPassword = document.getElementById('auth-password');
+        if (authInput) {
+          authInput.value = '';
+          authInput.parentElement.style.display = '';
+        }
+        if (authPassword) {
+          authPassword.value = '';
+          const group = document.getElementById('auth-password-group');
+          if (group) group.style.display = '';
+        }
+        const nameGroup = document.getElementById('auth-name-group');
+        if (nameGroup) nameGroup.style.display = 'none';
+        const toggle = document.getElementById('btn-auth-toggle');
+        if (toggle) toggle.style.display = '';
+        const subtitle = document.getElementById('auth-subtitle');
+        if (subtitle) subtitle.innerText = 'Sign in to access your AI workspace';
+        const btnText = document.getElementById('auth-btn-text');
+        if (btnText) btnText.innerText = 'Sign In';
+      }
+      this.checkAuth();
+    }
+  }
+
+  openSettings() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+
+    const displayName = localStorage.getItem('kanban_display_name') || localStorage.getItem('kanban_user') || '';
+    const focusMins = localStorage.getItem('mdl_focus_duration') || '25';
+    const breakMins = localStorage.getItem('mdl_break_duration') || '5';
+    const dueReminders = localStorage.getItem('mdl_due_reminders') !== 'false';
+    const reminderMins = localStorage.getItem('mdl_reminder_mins') || '15';
+    const timerAlert = localStorage.getItem('mdl_timer_alert') !== 'false';
+    const soundAlerts = localStorage.getItem('mdl_sound_alerts') !== 'false';
+
+    document.getElementById('settings-display-name').value = displayName;
+    document.getElementById('settings-focus-mins').value = focusMins;
+    document.getElementById('settings-break-mins').value = breakMins;
+    document.getElementById('settings-due-reminders').checked = dueReminders;
+    document.getElementById('settings-reminder-mins').value = reminderMins;
+    document.getElementById('settings-timer-alert').checked = timerAlert;
+    document.getElementById('settings-sound-alerts').checked = soundAlerts;
+
+    modal.style.display = 'flex';
+  }
+
+  saveSettings() {
+    const displayName = document.getElementById('settings-display-name').value.trim();
+    const focusMins = parseInt(document.getElementById('settings-focus-mins').value) || 25;
+    const breakMins = parseInt(document.getElementById('settings-break-mins').value) || 5;
+    const dueReminders = document.getElementById('settings-due-reminders').checked;
+    const reminderMins = parseInt(document.getElementById('settings-reminder-mins').value) || 15;
+    const timerAlert = document.getElementById('settings-timer-alert').checked;
+    const soundAlerts = document.getElementById('settings-sound-alerts').checked;
+
+    if (displayName) localStorage.setItem('kanban_display_name', displayName);
+    localStorage.setItem('mdl_focus_duration', focusMins.toString());
+    localStorage.setItem('mdl_break_duration', breakMins.toString());
+    localStorage.setItem('mdl_due_reminders', dueReminders.toString());
+    localStorage.setItem('mdl_reminder_mins', reminderMins.toString());
+    localStorage.setItem('mdl_timer_alert', timerAlert.toString());
+    localStorage.setItem('mdl_sound_alerts', soundAlerts.toString());
+
+    document.getElementById('settings-modal').style.display = 'none';
+
+    if (this.dashboard) {
+      this.dashboard.updateGreeting();
+      this.dashboard.applyTimerSettings();
+    }
+
+    alert('✨ Settings saved successfully!');
   }
 
   attachNavigationListeners() {
@@ -196,6 +334,40 @@ class KanbanApp {
       });
     }
 
+    // Sidebar Settings Button
+    const settingsBtn = document.getElementById('btn-sidebar-settings');
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', () => this.openSettings());
+    }
+
+    // Settings Modal Close
+    const closeSettingsBtn = document.getElementById('btn-close-settings');
+    if (closeSettingsBtn) {
+      closeSettingsBtn.addEventListener('click', () => {
+        document.getElementById('settings-modal').style.display = 'none';
+      });
+    }
+
+    // Settings Modal Save
+    const saveSettingsBtn = document.getElementById('btn-save-settings');
+    if (saveSettingsBtn) {
+      saveSettingsBtn.addEventListener('click', () => this.saveSettings());
+    }
+
+    // Settings modal backdrop click to close
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) settingsModal.style.display = 'none';
+      });
+    }
+
+    // Sidebar Logout Button
+    const logoutBtn = document.getElementById('btn-sidebar-logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', () => this.logout());
+    }
+
     // Top Search Input
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
@@ -210,7 +382,17 @@ class KanbanApp {
         document.querySelectorAll('.filter-pill[data-priority]').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
         const priority = pill.dataset.priority;
-        this.board.setFilter(undefined, priority);
+        this.board.setFilter(undefined, priority, undefined);
+      });
+    });
+
+    // Time Filter Pills
+    document.querySelectorAll('.filter-pill[data-time]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill[data-time]').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        const time = pill.dataset.time;
+        this.board.setFilter(undefined, undefined, time);
       });
     });
 
@@ -233,6 +415,8 @@ class KanbanApp {
       'Board': 'view-board',
       'Actions / Board': 'view-board',
       'Dashboard': 'view-dashboard',
+      'Focus Timer': 'view-dashboard',
+      'Habits': 'view-dashboard',
       'Roadmap': 'view-roadmap',
       'Horizon': 'view-horizon',
       'Reports': 'view-reports',
@@ -324,7 +508,12 @@ class KanbanApp {
   updateDynamicViews() {
     const cards = this.board.cards;
     
-    // 1. Dashboard
+    // Update new dashboard
+    if (this.dashboard) {
+      this.dashboard.updateStats();
+      this.dashboard.updateSchedule();
+    }
+    
     const total = cards.length;
     const done = cards.filter(c => c.columnId === 'done').length;
     const productivity = total > 0 ? Math.round((done / total) * 100) : 0;
